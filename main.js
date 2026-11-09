@@ -9,6 +9,7 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { createRoomBackground } from './room-background.js?v=6';
+import { getLanguage, setLanguage, translate } from './language.js?v=2';
 
 // =====================================
 // SCENE + LIGHTING
@@ -466,8 +467,9 @@ function restoreBloomMaterials(object) {
 // CAMERA CONTROLS
 // =====================================
 const controls = new OrbitControls(camera, renderer.domElement);
-const previewGateEnabled = true;
-let previewGateActive = previewGateEnabled;
+// Set to false when the site is ready to welcome everyone without a password.
+const previewPasswordRequired = true;
+let previewGateActive = true;
 controls.enabled = !previewGateActive;
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
@@ -520,32 +522,70 @@ const previewGate = document.getElementById('preview-gate');
 const previewForm = document.getElementById('preview-form');
 const previewPassword = document.getElementById('preview-password');
 const previewError = document.getElementById('preview-error');
+const previewSubmit = previewForm.querySelector('button');
+document.getElementById('preview-coming-soon').hidden = !previewPasswordRequired;
+document.getElementById('preview-welcome').hidden = previewPasswordRequired;
+document.querySelector('.preview-description').hidden = !previewPasswordRequired;
+document.getElementById('preview-teaser').hidden = !previewPasswordRequired;
+document.getElementById('preview-password-description').hidden = !previewPasswordRequired;
+document.getElementById('preview-password-label').hidden = !previewPasswordRequired;
+previewPassword.hidden = !previewPasswordRequired;
+previewPassword.required = previewPasswordRequired;
+let languageAnimations = [];
+document.querySelectorAll('input[name="language"]').forEach((input) => {
+  input.addEventListener('change', () => {
+    setLanguage(input.value);
+    if (previewError.textContent) previewError.textContent = translate(previewError.dataset.message);
+    renderPortfolioCards();
+    languageAnimations.forEach((animation) => animation.cancel());
+    languageAnimations = [];
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const translatedElements = [
+        document.getElementById('preview-welcome'),
+        document.querySelector('.preview-description'),
+        document.getElementById('preview-password-label'),
+        previewSubmit,
+        previewError
+      ];
+      languageAnimations = translatedElements
+        .filter((element) => element.offsetParent !== null && element.textContent.trim())
+        .map((element) => element.animate(
+          [{ opacity: 0.4, transform: 'translateY(4px)' }, { opacity: 1, transform: 'translateY(0)' }],
+          { duration: 260, easing: 'ease-out' }
+        ));
+    }
+  });
+});
+setLanguage('de');
 let startupReady = false;
 let startupScreenDismissed = false;
 
 previewForm.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const submitButton = previewForm.querySelector('button');
-  submitButton.disabled = true;
+  previewSubmit.disabled = true;
   previewError.textContent = '';
   try {
-    if (!window.crypto?.subtle) throw new Error('Password check requires HTTPS');
-    const bytes = new TextEncoder().encode(previewPassword.value);
-    const digest = await window.crypto.subtle.digest('SHA-256', bytes);
-    const hash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
-    if (hash !== '649fa7922fca77dc0108c0174aaf02fb7b5895a0e96abdfec75d23dbbcc9834a') {
-      previewError.textContent = 'Das Passwort stimmt leider nicht. Versuch es noch einmal.';
-      previewPassword.select();
-      return;
+    if (previewPasswordRequired) {
+      if (!window.crypto?.subtle) throw new Error('Password check requires HTTPS');
+      const bytes = new TextEncoder().encode(previewPassword.value);
+      const digest = await window.crypto.subtle.digest('SHA-256', bytes);
+      const hash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+      if (hash !== '81366d623470b6905c10929a704b256ede343c30e35c195c3e2746c7b1f65dd3') {
+        previewError.dataset.message = 'Das Passwort stimmt leider nicht. Versuch es noch einmal.';
+        previewError.textContent = translate(previewError.dataset.message);
+        previewPassword.select();
+        return;
+      }
     }
     previewPassword.value = '';
     previewGate.hidden = true;
     previewGateActive = false;
   } catch (error) {
     console.error('Preview password check failed:', error);
-    previewError.textContent = 'Die Prüfung funktioniert gerade nicht. Bitte verwende eine sichere HTTPS-Verbindung.';
+    previewError.dataset.message = 'Die Prüfung funktioniert gerade nicht. Bitte verwende eine sichere HTTPS-Verbindung.';
+    previewError.textContent = translate(previewError.dataset.message);
   } finally {
-    submitButton.disabled = false;
+    previewSubmit.disabled = false;
   }
 });
 
@@ -569,7 +609,7 @@ function dismissStartupScreen() {
     startupScreen.setAttribute('aria-hidden', 'true');
     window.setTimeout(() => {
       startupScreen.remove();
-      if (previewGateActive) previewPassword.focus();
+      if (previewGateActive) (previewPasswordRequired ? previewPassword : previewSubmit).focus();
     }, 650);
   }, 1000);
 }
@@ -837,7 +877,7 @@ function speakNextIntroLine() {
     return;
   }
 
-  const line = introLines[introLineIndex++];
+  const line = translate(introLines[introLineIndex++]);
   const spokenLine = line.replace(/\bRoisin\b/g, 'Ro-schien');
   introCurrentLine = line;
   introTextTargetIndex = 0;
@@ -881,7 +921,7 @@ function speakNextIntroLine() {
   ) return;
 
   const utterance = new SpeechSynthesisUtterance(spokenLine);
-  utterance.lang = 'de-DE';
+  utterance.lang = getLanguage() === 'en' ? 'en-US' : 'de-DE';
   utterance.rate = 1.18;
   utterance.pitch = 1.05;
   utterance.onboundary = (event) => {
@@ -1425,14 +1465,14 @@ const sketchbookGalleryItems = [
   { type: 'image', title: 'Farbstiftzeichnung', detail: 'Zeichnung', image: './models/roisin_farbstiftzeichnung.png' },
   { type: 'image', title: 'Hände Zeichnung', detail: 'Zeichnung', image: './WEB_PORTFOLIO/ANALOG/roisin_haende_zeichnung.jpg' },
   { type: 'image', title: 'Robot Katze', detail: 'Zeichnung', image: './WEB_PORTFOLIO/ANALOG/roisin_robot_katze.jpg' },
-  { type: 'image', title: 'Stillleben Digital', detail: 'Mit Procreate erstellt', image: './WEB_PORTFOLIO/DIGITAL/roisin_stilleben_digital.jpg' },
+  { type: 'image', title: 'Stillleben', detail: 'Mit Procreate erstellt', image: './WEB_PORTFOLIO/DIGITAL/roisin_stilleben_digital.jpg' },
   { type: 'image', title: 'Chappell Roan', detail: 'Bleistiftzeichnung', image: './WEB_PORTFOLIO/ANALOG/chappellroan_pencil.png' },
   { type: 'image', title: 'Girl with Crocodile', detail: 'Bleistiftzeichnung', image: './isometric_room_starterfile.fbm/girl_drawing_pencil.png' },
   { type: 'image', title: 'Perspective Zeichnung', detail: 'Bleistiftzeichnung', image: './WEB_PORTFOLIO/ANALOG/roisin_perpsektive_zeichnung.jpg' },
   { type: 'image', title: 'Hina Luna', detail: 'Mit IbisPaint X erstellt', image: './isometric_room_starterfile.fbm/hina_luna_drawing_final.png' },
-  { type: 'image', title: 'Beast Eater Poster', detail: 'Mit IbisPaint X erstellt', image: './isometric_room_starterfile.fbm/beasteater_poster.png' },
-  { type: 'image', title: 'Beast Eater Poster 2', detail: 'Mit IbisPaint X erstellt', image: './isometric_room_starterfile.fbm/beasteater_poster_02.png' },
-  { type: 'image', title: 'Beast Eater Poster 3', detail: 'Mit IbisPaint X erstellt', image: './isometric_room_starterfile.fbm/beasteater_poster_03.png' }
+  { type: 'image', title: 'Beasteater Plakat', detail: 'Mit IbisPaint X erstellt', image: './isometric_room_starterfile.fbm/beasteater_poster.png' },
+  { type: 'image', title: 'Beasteater Plakat', detail: 'Mit IbisPaint X erstellt', image: './isometric_room_starterfile.fbm/beasteater_poster_02.png' },
+  { type: 'image', title: 'Beasteater Plakat', detail: 'Mit IbisPaint X erstellt', image: './isometric_room_starterfile.fbm/beasteater_poster_03.png' }
 ];
 
 const floorArtworkByName = new Map([
@@ -1483,7 +1523,7 @@ const floorArtworkByName = new Map([
   ['Plane005', {
     title: 'Plakat',
     detail: 'Mit Ibispaint X Erstellt',
-    image: './isometric_room_starterfile.fbm/beasteater_poster_03.png',
+    image: './isometric_room_starterfile.fbm/beasteater_poster.png',
     hoverAxis: [1, 0, 0],
     hoverDistance: 0.18
   }],
@@ -1896,8 +1936,8 @@ async function showArtworkSlide(index, direction = 1) {
   artworkViewerVideo.hidden = true;
   artworkViewerVideo.style.opacity = '0';
 
-  artworkViewerTitle.textContent = item.title;
-  artworkViewerDetail.textContent = item.detail;
+  artworkViewerTitle.textContent = translate(item.title);
+  artworkViewerDetail.textContent = translate(item.detail);
   artworkViewerCount.textContent = `${activeArtworkIndex + 1} / ${activeArtworkItems.length}`;
   artworkViewerCount.hidden = activeArtworkItems.length < 2;
   artworkViewerPrevious.hidden = activeArtworkItems.length < 2;
@@ -1932,13 +1972,13 @@ async function showArtworkSlide(index, direction = 1) {
     if (requestId !== artworkRequestId || !artworkViewer.open) return;
 
     artworkViewerImage.hidden = false;
-    artworkViewerImage.alt = `${item.title}, ${item.detail}`;
+    artworkViewerImage.alt = `${translate(item.title)}, ${translate(item.detail)}`;
     artworkViewerImage.src = readyImage.src;
     artworkViewerImage.style.opacity = '1';
     slideIn(artworkViewerImage);
   } catch (error) {
     if (requestId === artworkRequestId) {
-      artworkViewerDetail.textContent = 'Media could not be loaded';
+      artworkViewerDetail.textContent = getLanguage() === 'en' ? 'Media could not be loaded' : 'Medium konnte nicht geladen werden';
       console.error('Artwork gallery item failed to load:', error);
     }
   }
@@ -2006,6 +2046,15 @@ const dogProject = {
 };
 
 const portfolioProjects = {
+  'beasteater_poster_web.jpg': {
+    items: [
+      { type: 'image', src: `${portfolioRoot}/DIGITAL/beasteater_poster_web.jpg`, label: 'Plakat' },
+      { type: 'image', src: `${portfolioRoot}/DIGITAL/beasteater_poster_02_web.jpg`, label: 'Plakat',
+        description: 'Das ist ein weiteres Plakat, diesmal mit einer Figur und senkrechter Schrift in Grüntönen.' },
+      { type: 'image', src: `${portfolioRoot}/DIGITAL/beasteater_poster_03_web.jpg`, label: 'Plakat',
+        description: 'Für dieses Plakat habe ich Figuren, Schrift und grafische Elemente in Gelb und Grün kombiniert.' }
+    ]
+  },
   './assets/roisin_greyscale_v15_web.webp': {
     items: [
       { type: 'image', src: `${portfolioRoot}/DIGITAL/roisin_grayscale_skizze.jpeg`, label: 'Skizze' },
@@ -2033,9 +2082,6 @@ const portfolioProjects = {
       { type: 'video', src: `${portfolioRoot}/DIGITAL/stargirl_rough_animation_web.mp4`, label: 'Rohanimation' },
       { type: 'video', src: './models/stargirl_final_web.mp4', label: 'Weitere Version' }
     ]
-  },
-  './models/roisin_walk_cycle_web.mp4': {
-    items: [{ type: 'video', src: './roisin-web-animation-comingsoon.mp4', label: 'Weitere Version' }]
   },
   './red_pikmin_idle_web.mp4': {
     items: [
@@ -2083,16 +2129,12 @@ const portfolioCategories = [
         'Bei dieser digitalen Zeichnung habe ich eine Figur und ihre Umgebung gestaltet. Hier sieht man den Weg von der Skizze über die Lineart und Graustufen bis zum fertigen Bild.'],
       ['roisin_digitale_charakterzeichnung_web.jpg', 'Digitale Charakterzeichnung', 'Digitale Zeichnung',
         'Diese Figur habe ich digital in Grüntönen gezeichnet. Sie sitzt und hat einen gestreiften Schwanz.'],
-      ['roisin_stilleben_digital.jpg', 'Stillleben Digital', 'Mit Procreate erstellt',
-        'Für dieses Stillleben habe ich verschiedene Gegenstände in Procreate gezeichnet und mit vielen Farben gearbeitet.'],
-      ['hina_luna_drawing_final_web.jpg', 'Hina Luna', 'Mit IbisPaint X erstellt',
+      ['roisin_stilleben_digital.jpg', 'Stillleben', 'Mit Procreate erstellt',
+        'Für diese Zeichnung habe ich verschiedene Gegenstände aus meinem Zimmer in Procreate gezeichnet.'],
+      ['hina_luna_drawing_final_web.jpg', 'Charakterzeichnung', 'Mit IbisPaint X erstellt',
         'Diese beiden Figuren habe ich in Ibis Paint X gezeichnet und dabei vor allem Blau- und Violetttöne verwendet.'],
-      ['beasteater_poster_web.jpg', 'Beast Eater Poster', 'Mit IbisPaint X erstellt',
-        'Für dieses Poster habe ich eine Zeichnung mit sich wiederholender Schrift kombiniert und Grün und Schwarz verwendet.'],
-      ['beasteater_poster_02_web.jpg', 'Beast Eater Poster 2', 'Mit IbisPaint X erstellt',
-        'Das ist eine weitere Version meines Posters, diesmal mit einer Figur und senkrechter Schrift in Grüntönen.'],
-      ['beasteater_poster_03_web.jpg', 'Beast Eater Poster 3', 'Mit IbisPaint X erstellt',
-        'Für diese Version habe ich Figuren, Schrift und grafische Elemente in Gelb und Grün kombiniert.'],
+      ['beasteater_poster_web.jpg', 'Beasteater Plakat', 'Mit IbisPaint X erstellt',
+        'Für dieses Plakat habe ich eine Zeichnung mit sich wiederholender Schrift kombiniert und Grün und Schwarz verwendet.'],
       ['stargirl_final_colour_web.mp4', 'Stargirl Animation', 'Mit IbisPaint X erstellt',
         'Für diese Animation habe ich einen Charakter und einen leuchtenden Stern gestaltet. Hier sieht man auch die Rohanimation und eine weitere Version.'],
       ['./red_pikmin_idle_web.mp4', 'Pikmin Animationen', 'Animation',
@@ -2202,8 +2244,8 @@ const projectVideoIcons = {
 
 function setProjectVideoIcon(button, icon, label) {
   button.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${projectVideoIcons[icon]}</svg>`;
-  button.setAttribute('aria-label', label);
-  button.title = label;
+  button.setAttribute('aria-label', translate(label));
+  button.title = translate(label);
 }
 
 function createProjectVideo(entry) {
@@ -2214,12 +2256,12 @@ function createProjectVideo(entry) {
   video.playsInline = true;
   video.muted = true;
   video.preload = entry.chromaKey ? 'auto' : 'metadata';
-  video.setAttribute('aria-label', entry.label);
+  video.setAttribute('aria-label', translate(entry.label));
   if (entry.chromaKey) {
     video.hidden = true;
     const canvas = document.createElement('canvas');
     canvas.setAttribute('role', 'img');
-    canvas.setAttribute('aria-label', entry.label);
+    canvas.setAttribute('aria-label', translate(entry.label));
     setupKeyedPortfolioVideo(video, canvas, entry);
     container.append(canvas);
   }
@@ -2237,7 +2279,7 @@ function createProjectVideo(entry) {
   seek.max = '0';
   seek.step = '0.01';
   seek.value = '0';
-  seek.setAttribute('aria-label', 'Position im Video');
+  seek.setAttribute('aria-label', translate('Position im Video'));
   const error = document.createElement('span');
   error.setAttribute('role', 'status');
   video.addEventListener('loadedmetadata', () => { seek.max = String(video.duration); });
@@ -2251,7 +2293,7 @@ function createProjectVideo(entry) {
     const silent = video.muted || video.volume === 0;
     setProjectVideoIcon(mute, silent ? 'muted' : 'sound', silent ? 'Ton an' : 'Ton aus');
   });
-  video.addEventListener('error', () => { error.textContent = 'Video konnte nicht geladen werden.'; });
+  video.addEventListener('error', () => { error.textContent = translate('Video konnte nicht geladen werden.'); });
   play.addEventListener('click', () => {
     if (!video.paused) {
       container.dataset.userPaused = 'true';
@@ -2259,7 +2301,7 @@ function createProjectVideo(entry) {
     } else {
       delete container.dataset.userPaused;
       video.play().catch((err) => {
-        error.textContent = 'Video konnte nicht abgespielt werden.';
+        error.textContent = translate('Video konnte nicht abgespielt werden.');
         console.error('Portfolio video playback failed:', err);
       });
     }
@@ -2291,34 +2333,41 @@ function showArtworkProject(index) {
       return config ? { ...entry, chromaKey: config.chromaKey, chromaCrop: config.chromaCrop, chromaErode: config.chromaErode } : entry;
     })
   ];
-  artworkProjectTitle.textContent = item.project.title;
-  artworkProjectDescription.textContent = item.project.description;
+  artworkProjectTitle.textContent = translate(item.project.title);
+  artworkProjectDescription.textContent = translate(item.project.description);
   projectVideoObserver?.disconnect();
   artworkProjectItems.querySelectorAll('video').forEach((video) => video.pause());
   artworkProjectItems.replaceChildren(...items.map((entry) => {
     const section = document.createElement('section');
     section.className = 'artwork-project-item';
     const heading = document.createElement('h3');
-    heading.textContent = entry.label;
+    heading.textContent = translate(entry.label);
     section.append(heading);
+
+    if (entry.description) {
+      const description = document.createElement('p');
+      description.className = 'artwork-project-item-description';
+      description.textContent = translate(entry.description);
+      section.append(description);
+    }
 
     if (entry.type === 'pdf') {
       const frame = document.createElement('iframe');
       frame.src = entry.src;
-      frame.title = `${item.project.title}: ${entry.label}`;
+      frame.title = `${translate(item.project.title)}: ${translate(entry.label)}`;
       frame.loading = 'lazy';
       const link = document.createElement('a');
       link.href = entry.src;
       link.target = '_blank';
       link.rel = 'noopener';
-      link.textContent = 'PDF in neuem Tab öffnen';
+      link.textContent = translate('PDF in neuem Tab öffnen');
       section.append(frame, link);
     } else if (entry.type === 'video') {
       section.append(createProjectVideo(entry));
     } else {
       const media = document.createElement('img');
       media.src = entry.src;
-      media.alt = `${item.project.title}: ${entry.label}`;
+      media.alt = `${translate(item.project.title)}: ${translate(entry.label)}`;
       media.loading = 'lazy';
       if (entry.background) media.style.backgroundColor = entry.background;
       section.append(media);
@@ -2344,7 +2393,7 @@ function showArtworkProject(index) {
       if (entry.isIntersecting && !container.dataset.userPaused) {
         video.play().catch((error) => {
           if (!container.isConnected || artworkViewer.classList.contains('is-project-closing')) return;
-          container.querySelector('[role="status"]').textContent = 'Automatische Wiedergabe nicht möglich. Bitte auf Abspielen klicken.';
+          container.querySelector('[role="status"]').textContent = translate('Automatische Wiedergabe nicht möglich. Bitte auf Abspielen klicken.');
           console.warn('Portfolio video autoplay failed:', error);
         });
       } else if (!entry.isIntersecting) {
@@ -2415,7 +2464,7 @@ function renderPortfolioCards() {
       ].map(([className, text]) => {
         const span = document.createElement('span');
         span.className = className;
-        span.textContent = text;
+        span.textContent = translate(text);
         return span;
       });
 
@@ -2433,7 +2482,7 @@ function showPortfolioCategory(category) {
   portfolioOverlay.classList.toggle('is-returning', !inGallery && wasGallery);
   portfolioCards.hidden = inGallery;
   portfolioGallery.hidden = !inGallery;
-  portfolioTitle.textContent = inGallery ? category.name : 'Portfolio';
+  portfolioTitle.textContent = inGallery ? translate(category.name) : 'Portfolio';
   portfolioOverlay.scrollTop = 0;
 
   if (!inGallery) {
@@ -2452,7 +2501,7 @@ function showPortfolioCategory(category) {
       tile.type = 'button';
       tile.className = 'portfolio-tile';
       tile.style.setProperty('--i', Math.min(index, 12));
-      tile.setAttribute('aria-label', `${item.title}, ${item.detail}`);
+      tile.setAttribute('aria-label', `${translate(item.title)}, ${translate(item.detail)}`);
 
       let media;
       if (item.type === 'video' && item.chromaKey) {
@@ -2485,7 +2534,7 @@ function showPortfolioCategory(category) {
       } else {
         media = document.createElement('img');
         media.src = item.image;
-        media.alt = item.title;
+        media.alt = translate(item.title);
         media.loading = 'lazy';
       }
       tile.append(media);

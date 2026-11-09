@@ -66,7 +66,7 @@ const removalObserver = new MutationObserver(() => {
 });
 removalObserver.observe(document.body, { childList: true });
 
-loader.load('./assets/star_lamp_loading.glb', (gltf) => {
+loader.load('./assets/star_lamp_loading_optimized.glb', (gltf) => {
   if (stopped) return;
   const object = gltf.scene;
   const bounds = new THREE.Box3().setFromObject(object);

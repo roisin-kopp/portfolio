@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My 3D Portfolio</title>
+    <link rel="preload" href="./assets/star_lamp_loading_optimized.glb" as="fetch" crossorigin fetchpriority="high">
     <script type="importmap">
         {
             "imports": {
@@ -124,6 +125,43 @@
 
         .preview-description { margin: 24px 0; }
 
+        .language-choice {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 0;
+            padding: 0;
+            border: 0;
+        }
+
+        .language-choice label {
+            cursor: pointer;
+            border: 1px solid var(--room-purple);
+            border-radius: 8px;
+            padding: 7px 14px;
+            transition: color 200ms ease, background 200ms ease, border-color 200ms ease;
+        }
+
+        .language-choice label:has(input:checked) {
+            color: #100713;
+            background: var(--room-pink);
+            border-color: var(--room-pink);
+        }
+
+        .language-choice label:has(input:focus-visible) {
+            outline: 2px solid white;
+            outline-offset: 3px;
+        }
+
+        .language-choice input {
+            position: absolute;
+            opacity: 0;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .language-choice label { transition: none; }
+        }
+
         .preview-form {
             display: grid;
             gap: 12px;
@@ -132,13 +170,13 @@
             text-align: left;
         }
 
-        .preview-form label {
+        #preview-password-label {
             font-size: 14px;
             letter-spacing: 0.08em;
             text-transform: uppercase;
         }
 
-        .preview-form input,
+        #preview-password,
         .preview-form button {
             box-sizing: border-box;
             width: 100%;
@@ -595,6 +633,42 @@
             width: min(1000px, 64vw);
         }
 
+        @media (min-width: 901px) {
+            .portfolio-overlay:not(.is-gallery) {
+                grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+                column-gap: clamp(24px, 4vw, 72px);
+            }
+
+            .portfolio-overlay:not(.is-gallery) .portfolio-title {
+                grid-column: 1;
+                grid-row: 1;
+            }
+
+            .portfolio-overlay:not(.is-gallery) .portfolio-cards {
+                grid-column: 1;
+                grid-row: 2;
+                width: 100%;
+            }
+
+            .portfolio-mascot-wrap {
+                grid-column: 2;
+                grid-row: 1 / 3;
+                align-self: center;
+                justify-self: center;
+                display: grid;
+                place-items: center;
+                width: 100%;
+                min-width: 0;
+                padding: 8px;
+                box-sizing: border-box;
+                pointer-events: none;
+            }
+        }
+
+        .portfolio-overlay.is-gallery .portfolio-mascot-wrap {
+            display: none;
+        }
+
         .about-halftone,
         .contact-halftone {
             position: fixed;
@@ -628,12 +702,11 @@
         }
 
         .portfolio-mascot {
-            position: fixed;
-            right: 9vw;
-            top: calc(50% + 2.5vh);
-            margin-top: calc(min(62vh, 640px) / -2);
-            height: min(62vh, 640px);
+            display: block;
+            max-height: min(66vh, 680px);
+            max-width: 100%;
             width: auto;
+            height: auto;
             pointer-events: none;
             opacity: 0;
             transform: translateX(140px);
@@ -659,7 +732,7 @@
         }
 
         @media (max-width: 900px) {
-            .portfolio-mascot { display: none; }
+            .portfolio-mascot-wrap { display: none; }
         }
 
         .portfolio-card {
@@ -960,6 +1033,13 @@
         .artwork-project-item h3 {
             color: var(--room-purple);
             font-size: 18px;
+        }
+
+        .artwork-project-item-description {
+            max-width: 700px;
+            margin: 0 0 24px;
+            color: #e6c6ff;
+            font: 300 clamp(16px, 1.4vw, 20px)/1.5 "Satoshi", sans-serif;
         }
 
         .artwork-project-item img,
@@ -1311,19 +1391,23 @@
     </main>
     <section id="preview-gate" class="preview-gate" aria-labelledby="preview-title" hidden>
         <div class="preview-content">
-            <h1 id="preview-title" class="preview-title">Coming<br>soon!</h1>
-            <p class="preview-description">Meine Welt öffnet bald ihre Türen.<br>Mit dem Passwort kannst du schon mal reinschauen.</p>
+            <h1 id="preview-title" class="preview-title"><span id="preview-coming-soon">Coming<br>soon!</span><span id="preview-welcome" hidden data-de="Willkommen!" data-en="Welcome!">Willkommen!</span></h1>
+            <p class="preview-description"><span id="preview-teaser" data-de="Meine Welt öffnet bald ihre Türen." data-en="My world will open its doors soon.">Meine Welt öffnet bald ihre Türen.</span><br><span id="preview-password-description" data-de="Mit dem Passwort kannst du schon mal reinschauen." data-en="With the password, you can have a look inside already.">Mit dem Passwort kannst du schon mal reinschauen.</span></p>
             <form id="preview-form" class="preview-form">
-                <label for="preview-password">Passwort</label>
+                <label id="preview-password-label" for="preview-password" data-de="Passwort" data-en="Password">Passwort</label>
                 <input id="preview-password" type="password" autocomplete="current-password" required>
-                <button type="submit">Reinschauen &rarr;</button>
+                <button type="submit" data-de="Reinschauen →" data-en="Enter →">Reinschauen &rarr;</button>
+                <fieldset class="language-choice" aria-label="Sprache wählen" data-de-label="Sprache wählen" data-en-label="Choose your language">
+                    <label><input type="radio" name="language" value="de" checked> Deutsch</label>
+                    <label><input type="radio" name="language" value="en"> English</label>
+                </fieldset>
                 <p id="preview-error" class="preview-error" role="status" aria-live="polite"></p>
             </form>
         </div>
     </section>
     <aside id="intro-guide" class="intro-guide" aria-live="polite" hidden>
         <canvas id="intro-halftone" class="intro-halftone" aria-hidden="true"></canvas>
-        <button id="intro-skip" class="intro-skip" type="button">Intro überspringen</button>
+        <button id="intro-skip" class="intro-skip" type="button" data-de="Intro überspringen" data-en="Skip intro">Intro überspringen</button>
         <div class="intro-copy">
             <p id="intro-caption-measure" class="intro-caption intro-caption-measure" aria-hidden="true"></p>
             <p id="intro-caption" class="intro-caption"></p>
@@ -1333,29 +1417,29 @@
     </aside>
     <header id="site-header" class="site-header" hidden>
         <h2 id="site-header-name" class="site-header-name">Roisin Kopp</h2>
-        <nav class="site-header-links" aria-label="Main navigation">
-            <button id="about-toggle" type="button" aria-controls="about-overlay" aria-expanded="false">About me</button>
-            <button id="contact-toggle" type="button" aria-controls="contact-overlay" aria-expanded="false">Kontakt</button>
+        <nav class="site-header-links" aria-label="Hauptnavigation" data-de-label="Hauptnavigation" data-en-label="Main navigation">
+            <button id="about-toggle" type="button" aria-controls="about-overlay" aria-expanded="false" data-de="About me" data-en="About me">About me</button>
+            <button id="contact-toggle" type="button" aria-controls="contact-overlay" aria-expanded="false" data-de="Kontakt" data-en="Contact">Kontakt</button>
             <button id="portfolio-toggle" type="button" aria-controls="portfolio-overlay" aria-expanded="false">Portfolio</button>
         </nav>
     </header>
-    <section id="about-overlay" class="about-overlay" aria-label="About me" hidden>
+    <section id="about-overlay" class="about-overlay" aria-label="Über mich" data-de-label="Über mich" data-en-label="About me" hidden>
         <canvas id="about-halftone" class="about-halftone" aria-hidden="true"></canvas>
-        <button id="about-room-back" class="portfolio-back about-room-back" type="button" hidden>&larr; Zurück zum Raum</button>
-        <h1 class="about-title" style="--i: 0">Hallo, ich bin Roisin!</h1>
+        <button id="about-room-back" class="portfolio-back about-room-back" type="button" hidden data-de="← Zurück zum Raum" data-en="← Back to the room">&larr; Zurück zum Raum</button>
+        <h1 class="about-title" style="--i: 0" data-de="Hallo, ich bin Roisin!" data-en="Hello, I'm Roisin!">Hallo, ich bin Roisin!</h1>
         <div class="about-columns">
             <div class="about-slide-left about-block" style="--i: 1">
-                <h2>01 — Über mich</h2>
-                <p>Ich bin eine kreative und neugierige Person mit einer grossen Leidenschaft für Gestaltung, Design und visuelle Ideen.</p>
-                <p>Mich fasziniert es, wie Farben, Formen und Typografie Geschichten erzählen können.</p>
+                <h2 data-de="01 — Über mich" data-en="01 — About me">01 — Über mich</h2>
+                <p data-de="Ich bin eine kreative und neugierige Person mit einer grossen Leidenschaft für Gestaltung, Design und visuelle Ideen." data-en="I'm a creative and curious person with a great passion for design and visual ideas.">Ich bin eine kreative und neugierige Person mit einer grossen Leidenschaft für Gestaltung, Design und visuelle Ideen.</p>
+                <p data-de="Mich fasziniert es, wie Farben, Formen und Typografie Geschichten erzählen können." data-en="I'm fascinated by how colours, shapes and typography can tell stories.">Mich fasziniert es, wie Farben, Formen und Typografie Geschichten erzählen können.</p>
             </div>
             <div class="about-right">
                 <div class="about-slide-right about-block" style="--i: 1">
-                    <h2>02 — Was mich inspiriert</h2>
-                    <p>Musik, Gaming, Design und Animation sind einige Dinge, die mich inspirieren. Ich zeichne gerne, interessiere mich für digitale Kunst und Gestaltung und entdecke immer wieder neue kreative Ideen. Besonders spannend finde ich unterschiedliche visuelle Stile und die Art, wie man mit Bildern und Design Geschichten erzählen kann.</p>
+                    <h2 data-de="02 — Was mich inspiriert" data-en="02 — What inspires me">02 — Was mich inspiriert</h2>
+                    <p data-de="Musik, Gaming, Design und Animation sind einige Dinge, die mich inspirieren. Ich zeichne gerne, interessiere mich für digitale Kunst und Gestaltung und entdecke immer wieder neue kreative Ideen. Besonders spannend finde ich unterschiedliche visuelle Stile und die Art, wie man mit Bildern und Design Geschichten erzählen kann." data-en="Music, gaming, design and animation are some of the things that inspire me. I enjoy drawing, I'm interested in digital art and design, and I'm always discovering new creative ideas. I find different visual styles and the way images and design can tell stories especially exciting.">Musik, Gaming, Design und Animation sind einige Dinge, die mich inspirieren. Ich zeichne gerne, interessiere mich für digitale Kunst und Gestaltung und entdecke immer wieder neue kreative Ideen. Besonders spannend finde ich unterschiedliche visuelle Stile und die Art, wie man mit Bildern und Design Geschichten erzählen kann.</p>
                 </div>
                 <div class="about-slide-right about-block" style="--i: 2">
-                    <h2>03 — Meine Tools</h2>
+                    <h2 data-de="03 — Meine Tools" data-en="03 — My tools">03 — Meine Tools</h2>
                     <ul class="about-tools">
                         <li>Blender</li>
                         <li>Photoshop</li>
@@ -1369,49 +1453,51 @@
             </div>
         </div>
         <div class="about-goal about-slide-left about-block" style="--i: 3">
-            <h2>04 — Was ich erreichen möchte</h2>
-            <p>Ich möchte meine Fähigkeiten weiterentwickeln, Neues lernen und meinen eigenen gestalterischen Stil finden.</p>
+            <h2 data-de="04 — Was ich erreichen möchte" data-en="04 — What I want to achieve">04 — Was ich erreichen möchte</h2>
+            <p data-de="Ich möchte meine Fähigkeiten weiterentwickeln, Neues lernen und meinen eigenen gestalterischen Stil finden." data-en="I want to develop my skills, learn new things and find my own creative style.">Ich möchte meine Fähigkeiten weiterentwickeln, Neues lernen und meinen eigenen gestalterischen Stil finden.</p>
         </div>
     </section>
     <section id="contact-overlay" class="contact-overlay" aria-labelledby="contact-title" hidden>
         <canvas id="contact-halftone" class="contact-halftone" aria-hidden="true"></canvas>
         <div>
-            <h1 id="contact-title" class="contact-title">Kontakt</h1>
-            <p class="contact-intro">Hast du Fragen oder möchtest du mit mir zusammenarbeiten?<br>Ich freue mich, von dir zu hören!</p>
+            <h1 id="contact-title" class="contact-title" data-de="Kontakt" data-en="Contact">Kontakt</h1>
+            <p class="contact-intro"><span data-de="Hast du Fragen oder möchtest du mit mir zusammenarbeiten?" data-en="Do you have questions or would you like to work together?">Hast du Fragen oder möchtest du mit mir zusammenarbeiten?</span><br><span data-de="Ich freue mich, von dir zu hören!" data-en="I'd love to hear from you!">Ich freue mich, von dir zu hören!</span></p>
         </div>
         <div class="contact-layout">
             <div class="contact-block">
-                <h2>01 — E-Mail</h2>
+                <h2 data-de="01 — E-Mail" data-en="01 — Email">01 — E-Mail</h2>
                 <a class="contact-link" href="mailto:roisin.kopp@first-floor.ch">roisin.kopp@first-floor.ch</a>
             </div>
             <div class="contact-block">
-                <h2>02 — Telefon</h2>
+                <h2 data-de="02 — Telefon" data-en="02 — Phone">02 — Telefon</h2>
                 <a class="contact-link" href="tel:+41798492019">+41 79 849 20 19</a>
             </div>
             <div class="contact-block">
-                <h2>03 — Lebenslauf</h2>
-                <a class="contact-link contact-download" href="./LEBENSLAUF/VERSIONEN/roisin_lebenslauf_06.pdf" download>Lebenslauf herunterladen &darr;</a>
+                <h2 data-de="03 — Lebenslauf" data-en="03 — CV">03 — Lebenslauf</h2>
+                <a class="contact-link contact-download" href="./LEBENSLAUF/VERSIONEN/roisin_lebenslauf_06.pdf" download data-de="Lebenslauf herunterladen ↓" data-en="Download CV ↓">Lebenslauf herunterladen &darr;</a>
             </div>
         </div>
     </section>
     <section id="portfolio-overlay" class="portfolio-overlay" aria-label="Portfolio" hidden>
-        <img class="portfolio-mascot" src="./assets/portfolio-mascot.png" decoding="async" alt="" aria-hidden="true">
+        <div class="portfolio-mascot-wrap" aria-hidden="true">
+            <img class="portfolio-mascot" src="./assets/portfolio-mascot.png" decoding="async" alt="">
+        </div>
         <h1 class="portfolio-title" style="--i: 0">Portfolio</h1>
-        <nav id="portfolio-cards" class="portfolio-cards" aria-label="Portfolio categories"></nav>
+        <nav id="portfolio-cards" class="portfolio-cards" aria-label="Portfolio-Kategorien" data-de-label="Portfolio-Kategorien" data-en-label="Portfolio categories"></nav>
         <div id="portfolio-gallery" class="portfolio-gallery" hidden>
             <button id="portfolio-back" class="portfolio-back" type="button">&larr; Portfolio</button>
             <div id="portfolio-grid" class="portfolio-grid"></div>
         </div>
     </section>
-    <dialog id="artwork-viewer" class="artwork-viewer" aria-label="Artwork viewer">
-        <button id="artwork-viewer-close" class="artwork-viewer-close" type="button" aria-label="Close artwork">&times;</button>
+    <dialog id="artwork-viewer" class="artwork-viewer" aria-label="Werk ansehen" data-de-label="Werk ansehen" data-en-label="Artwork viewer">
+        <button id="artwork-viewer-close" class="artwork-viewer-close" type="button" aria-label="Werk schliessen" data-de-label="Werk schliessen" data-en-label="Close artwork">&times;</button>
         <figure id="artwork-viewer-figure">
             <div class="artwork-viewer-media">
-                <button id="artwork-viewer-previous" class="artwork-gallery-nav artwork-gallery-previous" type="button" aria-label="Previous artwork" hidden>&lsaquo;</button>
+                <button id="artwork-viewer-previous" class="artwork-gallery-nav artwork-gallery-previous" type="button" aria-label="Vorheriges Werk" data-de-label="Vorheriges Werk" data-en-label="Previous artwork" hidden>&lsaquo;</button>
                 <img id="artwork-viewer-image" alt="" hidden>
-                <video id="artwork-viewer-video" controls playsinline loop muted preload="none" aria-label="Portfolio animation" hidden></video>
-                <canvas id="artwork-viewer-keyed" role="img" aria-label="Portfolio animation" hidden></canvas>
-                <button id="artwork-viewer-next" class="artwork-gallery-nav artwork-gallery-next" type="button" aria-label="Next artwork" hidden>&rsaquo;</button>
+                <video id="artwork-viewer-video" controls playsinline loop muted preload="none" aria-label="Portfolio-Animation" data-de-label="Portfolio-Animation" data-en-label="Portfolio animation" hidden></video>
+                <canvas id="artwork-viewer-keyed" role="img" aria-label="Portfolio-Animation" data-de-label="Portfolio-Animation" data-en-label="Portfolio animation" hidden></canvas>
+                <button id="artwork-viewer-next" class="artwork-gallery-nav artwork-gallery-next" type="button" aria-label="Nächstes Werk" data-de-label="Nächstes Werk" data-en-label="Next artwork" hidden>&rsaquo;</button>
             </div>
             <figcaption>
                 <span id="artwork-viewer-title" class="artwork-viewer-title"></span>
@@ -1420,18 +1506,18 @@
             </figcaption>
         </figure>
         <section id="artwork-project" class="artwork-project" aria-labelledby="artwork-project-title" hidden>
-            <button id="artwork-project-back" class="portfolio-back" type="button">&larr; Übersicht</button>
+            <button id="artwork-project-back" class="portfolio-back" type="button" data-de="← Übersicht" data-en="← Overview">&larr; Übersicht</button>
             <h2 id="artwork-project-title"></h2>
             <p id="artwork-project-description" class="artwork-project-description"></p>
             <div id="artwork-project-items"></div>
-            <nav class="artwork-project-nav" aria-label="Projekte">
-                <button id="artwork-project-previous" type="button">&larr; Vorheriges Projekt</button>
+            <nav class="artwork-project-nav" aria-label="Projekte" data-de-label="Projekte" data-en-label="Projects">
+                <button id="artwork-project-previous" type="button" data-de="← Vorheriges Projekt" data-en="← Previous project">&larr; Vorheriges Projekt</button>
                 <span id="artwork-project-count"></span>
-                <button id="artwork-project-next" type="button">Nächstes Projekt &rarr;</button>
+                <button id="artwork-project-next" type="button" data-de="Nächstes Projekt →" data-en="Next project →">Nächstes Projekt &rarr;</button>
             </nav>
         </section>
     </dialog>
-    <script type="module" src="./startup-lamp.js?v=4"></script>
-    <script type="module" src="./main.js?v=74"></script>
+    <script type="module" src="./startup-lamp.js?v=5"></script>
+    <script type="module" src="./main.js?v=81"></script>
 </body>
 </html>
