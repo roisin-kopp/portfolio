@@ -9,7 +9,7 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { createRoomBackground } from './room-background.js?v=6';
-import { getLanguage, setLanguage, translate } from './language.js?v=2';
+import { getLanguage, setLanguage, translate } from './language.js?v=3';
 
 // =====================================
 // SCENE + LIGHTING
@@ -635,6 +635,7 @@ const setPanelOpen = (panel, open) => {
 
   if (open) {
     panel.overlay.hidden = false;
+    if (panel.overlay.id === 'about-overlay') panel.overlay.scrollTop = 0;
     window.requestAnimationFrame(() => panel.overlay.classList.add('is-open'));
   } else {
     panel.overlay.classList.remove('is-open');
@@ -646,6 +647,12 @@ const setPanelOpen = (panel, open) => {
     }, 500);
   }
 };
+
+const aboutOverlayElement = document.getElementById('about-overlay');
+const aboutScrollHint = document.getElementById('about-scroll-hint');
+aboutOverlayElement.addEventListener('scroll', () => {
+  aboutScrollHint.classList.toggle('is-hidden', aboutOverlayElement.scrollTop > 24);
+}, { passive: true });
 
 const showSitePanel = (activePanel, { fromCharacter = false } = {}) => {
   window.clearTimeout(panelCloseTimer);

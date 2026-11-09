@@ -595,7 +595,45 @@
             max-width: 1200px;
             padding-top: 40px;
             border-top: 1px solid rgba(199, 155, 255, 0.3);
+            position: relative;
         }
+
+        .about-photo {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            margin: 0;
+            padding: 56px 0 64px;
+            box-sizing: border-box;
+        }
+
+        .about-photo img {
+            display: block;
+            width: 100%;
+            height: auto;
+            border: 1px solid rgba(199, 155, 255, 0.3);
+            border-radius: 12px;
+            box-shadow: 0 0 32px rgba(255, 71, 200, 0.25);
+        }
+
+        .about-scroll-hint {
+            position: fixed;
+            z-index: 1;
+            left: 50%;
+            bottom: 22px;
+            margin: 0;
+            transform: translateX(-50%);
+            color: var(--room-pink);
+            font: 900 clamp(14px, 1.3vw, 18px)/1.2 "Satoshi", sans-serif;
+            letter-spacing: 0.08em;
+            text-align: center;
+            text-transform: uppercase;
+            pointer-events: none;
+            transition: opacity 300ms ease;
+        }
+
+        .about-scroll-hint.is-hidden { opacity: 0; }
 
         .about-slide-left,
         .about-slide-right,
@@ -1457,7 +1495,11 @@
         <div class="about-goal about-slide-left about-block" style="--i: 3">
             <h2 data-de="04 — Was ich erreichen möchte" data-en="04 — What I want to achieve">04 — Was ich erreichen möchte</h2>
             <p data-de="Ich möchte meine Fähigkeiten weiterentwickeln, Neues lernen und meinen eigenen gestalterischen Stil finden." data-en="I want to develop my skills, learn new things and find my own creative style.">Ich möchte meine Fähigkeiten weiterentwickeln, Neues lernen und meinen eigenen gestalterischen Stil finden.</p>
+            <figure class="about-photo" role="img" aria-label="Porträt von Roisin" data-de-label="Porträt von Roisin" data-en-label="Portrait of Roisin">
+                <img src="./assets/roisin_portrait_web.jpg" alt="" width="1800" height="1200" loading="lazy" decoding="async">
+            </figure>
         </div>
+        <p id="about-scroll-hint" class="about-scroll-hint" aria-hidden="true" data-de="Scroll nach unten, um mich zu sehen ↓" data-en="Scroll down to see me ↓">Scroll nach unten, um mich zu sehen &darr;</p>
     </section>
     <section id="contact-overlay" class="contact-overlay" aria-labelledby="contact-title" hidden>
         <canvas id="contact-halftone" class="contact-halftone" aria-hidden="true"></canvas>
@@ -1520,6 +1562,6 @@
         </section>
     </dialog>
     <script type="module" src="./startup-lamp.js?v=5"></script>
-    <script type="module" src="./main.js?v=81"></script>
+    <script type="module" src="./main.js?v=82"></script>
 </body>
 </html>
